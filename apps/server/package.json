@@ -1,0 +1,17 @@
+{
+  "name": "server",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts"
+  },
+  "dependencies": {
+    "hono": "^4.7.4",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "optionalDependencies": {
+    "bufferutil": "^4.0.9",
+    "utf-8-validate": "^6.0.5"
+  }
+}
