@@ -31,4 +31,4 @@ ConversationSchema.index({ participants: 1 });
 ConversationSchema.index({ type: 1, lastMessage: -1 });
 
 export type Conversation = InferSchemaType<typeof ConversationSchema>;
-export default ConversationSchema;
+export default mongoose.model<Conversation>("Conversation", ConversationSchema);
