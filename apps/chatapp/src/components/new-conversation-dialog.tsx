@@ -23,7 +23,7 @@ import { mockCreateConversation, mockUsers } from "@/utils/mock-data";
 interface NewConversationDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  currentUser: User | null;
+  currentUser: User | undefined;
 }
 
 export default function NewConversationDialog({
@@ -41,18 +41,18 @@ export default function NewConversationDialog({
 
   useEffect(() => {
     if (isOpen && searchQuery.length >= 2) {
-      const filteredUsers = mockUsers.filter(
+      const filteredUsers: User[] = mockUsers.filter(
         (user) =>
-          user.id !== currentUser?.id &&
-          user.displayName.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+          user.id !== currentUser?._id &&
+          user.username.toLowerCase().includes(searchQuery.toLowerCase())
+      ) as User[];
       setUsers(filteredUsers);
     }
   }, [searchQuery, isOpen, currentUser]);
 
   const toggleUserSelection = (user: User) => {
-    if (selectedUsers.some((u) => u.id === user.id)) {
-      setSelectedUsers(selectedUsers.filter((u) => u.id !== user.id));
+    if (selectedUsers.some((u) => u._id === user._id)) {
+      setSelectedUsers(selectedUsers.filter((u) => u._id !== user._id));
     } else {
       setSelectedUsers([...selectedUsers, user]);
     }
@@ -73,30 +73,12 @@ export default function NewConversationDialog({
     setIsLoading(true);
 
     try {
-      const participantsInfo: { [key: string]: any } = {
-        [currentUser.id]: {
-          displayName: currentUser.displayName,
-          photoURL: currentUser.photoURL,
-        },
-      };
-
-      selectedUsers.forEach((user) => {
-        participantsInfo[user.id] = {
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-        };
-      });
-
       const conversationData = {
-        participants: [currentUser.id, ...selectedUsers.map((u) => u.id)],
-        participantsInfo,
-        isGroup,
-        createdBy: currentUser.id,
+        type: isGroup ? "group" : "direct",
+        participants: [currentUser._id, ...selectedUsers.map((u) => u._id)],
+        name: isGroup ? groupName : undefined,
+        admin: currentUser._id,
       };
-
-      if (isGroup) {
-        Object.assign(conversationData, { groupName });
-      }
 
       await mockCreateConversation(conversationData);
 
@@ -104,7 +86,7 @@ export default function NewConversationDialog({
         title: "Conversation created",
         description: isGroup
           ? `Group "${groupName}" has been created`
-          : `Conversation with ${selectedUsers.map((u) => u.displayName).join(", ")} started`,
+          : `Conversation with ${selectedUsers.map((u) => u.username).join(", ")} started`,
       });
 
       setSelectedUsers([]);
@@ -190,10 +172,10 @@ export default function NewConversationDialog({
               <div className="flex flex-wrap gap-2 mt-2">
                 {selectedUsers.map((user) => (
                   <div
-                    key={user.id}
+                    key={user._id}
                     className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-sm"
                   >
-                    <span>{user.displayName}</span>
+                    <span>{user.username}</span>
                     <button
                       type="button"
                       className="ml-1 text-muted-foreground hover:text-foreground"
@@ -211,22 +193,22 @@ export default function NewConversationDialog({
                 <div className="p-2">
                   {users.map((user) => (
                     <div
-                      key={user.id}
+                      key={user._id}
                       className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary cursor-pointer"
                       onClick={() => toggleUserSelection(user)}
                     >
                       <Checkbox
-                        checked={selectedUsers.some((u) => u.id === user.id)}
+                        checked={selectedUsers.some((u) => u._id === user._id)}
                         onCheckedChange={() => toggleUserSelection(user)}
                       />
                       <Avatar>
-                        <AvatarImage src={user.photoURL || undefined} />
+                        <AvatarImage src={user.profilePicture || undefined} />
                         <AvatarFallback>
-                          {getInitials(user.displayName)}
+                          {getInitials(user.username)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">{user.displayName}</p>
+                        <p className="font-medium">{user.username}</p>
                         <p className="text-xs text-muted-foreground">
                           {user.email}
                         </p>

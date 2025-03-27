@@ -6,18 +6,17 @@ import jwt from "jsonwebtoken";
 const app = new Hono();
 
 app.use("/verifyToken", async (c) => {
-  console.log("dcm");
   const token = getCookie(c, "userToken");
-
+  console.log(token);
   if (!token) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!.toString()) as {
+      _id: string;
       email: string;
       username: string;
-      password: string;
     };
     const user = await UserSchema.findOne({ email: decoded.email });
 
@@ -27,6 +26,7 @@ app.use("/verifyToken", async (c) => {
 
     return c.json({
       payload: {
+        _id: user._id,
         username: user.username,
         email: user.email,
       },
@@ -64,13 +64,19 @@ app.post("/register", async (c) => {
     password: hashedPassword,
   };
 
-  const token = jwt.sign(userData, process.env.JWT_SECRET!.toString(), {
+  const newUser = new UserSchema(userData);
+  await newUser.save();
+
+  const payload = {
+    _id: newUser._id,
+    email: newUser.email,
+    username: newUser.username,
+  };
+
+  const token = jwt.sign(payload, process.env.JWT_SECRET!.toString(), {
     algorithm: "HS256",
   });
   setCookie(c, "userToken", token);
-
-  const newUser = new UserSchema(userData);
-  await newUser.save();
 
   return c.json({ message: "User registered successfully", token });
 });
@@ -88,9 +94,9 @@ app.post("/login", async (c) => {
   }
 
   const payload = {
+    _id: user._id,
     email: user.email,
     username: user.username,
-    password: user.password,
   };
 
   const token = jwt.sign(payload, process.env.JWT_SECRET!.toString(), {

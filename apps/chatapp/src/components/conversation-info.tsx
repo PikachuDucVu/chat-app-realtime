@@ -33,7 +33,7 @@ interface ConversationInfoProps {
   isOpen: boolean;
   onClose: () => void;
   conversation: Conversation;
-  currentUser: User | null;
+  currentUser: User | undefined;
 }
 
 export default function ConversationInfo({
@@ -119,7 +119,7 @@ export default function ConversationInfo({
                     conversation.type === "group"
                       ? conversation.avatar
                       : conversation.participants.find(
-                          (p) => p.id !== currentUser?.id
+                          (p) => p._id !== currentUser?._id
                         )?.profilePicture || undefined
                   }
                 />
@@ -129,7 +129,7 @@ export default function ConversationInfo({
                   ) : (
                     getInitials(
                       conversation.participants.find(
-                        (p) => p.id !== currentUser?.id
+                        (p) => p._id !== currentUser?._id
                       )?.username || ""
                     )
                   )}
@@ -139,7 +139,7 @@ export default function ConversationInfo({
                 {conversation.type === "group"
                   ? conversation.name
                   : conversation.participants.find(
-                      (p) => p.id !== currentUser?.id
+                      (p) => p._id !== currentUser?._id
                     )?.username}
               </h3>
               {conversation.createdAt && (
@@ -157,7 +157,7 @@ export default function ConversationInfo({
                 <div className="space-y-2">
                   {conversation.participants.map((participant) => (
                     <div
-                      key={participant.id}
+                      key={participant._id}
                       className="flex items-center gap-3 p-2 rounded-lg"
                     >
                       <Avatar>
@@ -171,7 +171,7 @@ export default function ConversationInfo({
                       <div>
                         <p className="font-medium">
                           {participant.username}
-                          {participant.id === currentUser?.id && " (You)"}
+                          {participant._id === currentUser?._id && " (You)"}
                         </p>
                       </div>
                     </div>
@@ -194,7 +194,7 @@ export default function ConversationInfo({
 
             <div className="space-y-2">
               {conversation.type === "group" &&
-              conversation.admin?.id === currentUser?.id ? (
+              conversation.admin?._id === currentUser?._id ? (
                 <AlertDialog
                   open={isDeleteDialogOpen}
                   onOpenChange={setIsDeleteDialogOpen}

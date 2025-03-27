@@ -3,16 +3,21 @@ import User from "../schema/UserSchema";
 import Conversation from "../schema/ConversationSchema";
 import Message from "../schema/MessageSchema";
 import File from "../schema/FileSchema";
+import bcrypt from "bcryptjs";
 
 async function initData() {
   // Connect to MongoDB
   await mongoose.connect("mongodb://localhost:27017/chat-app");
 
+  const password = "password123";
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
+
   // Create a user
   const user = await User.create({
     username: "testuser",
-    email: "test@example.com",
-    password: "password123",
+    email: "test2@example.com",
+    password: hashedPassword,
     profilePicture: "https://example.com/profile.jpg",
   });
 

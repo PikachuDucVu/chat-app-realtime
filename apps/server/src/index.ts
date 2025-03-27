@@ -6,12 +6,14 @@ import type { ServerWebSocket } from "bun";
 import chatWs from "./ws/chat";
 import mongoose from "mongoose";
 import UserAPI from "./services/api/UserAPI";
+import Conversation from "./services/api/Conversation";
 
 const app = new Hono();
+
 app.use(
   "*",
   cors({
-    origin: "*",
+    origin: "http://localhost:5173", // Replace with your frontend URL
     credentials: true,
   })
 );
@@ -34,5 +36,6 @@ Bun.serve({
 
 app.route("/ws", chatWs);
 app.route("/user", UserAPI);
+app.route("/conversations", Conversation);
 
 export default app;

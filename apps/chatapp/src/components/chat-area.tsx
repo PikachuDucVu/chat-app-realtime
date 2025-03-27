@@ -8,32 +8,53 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Menu, Send, Info, Users } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import ConversationInfo from "@/components/conversation-info";
-import { mockGetMessages, mockSendMessage } from "@/utils/mock-data";
-import { User, Conversation } from "@/utils/types";
-import { Message } from "react-hook-form";
+import { User, Message } from "@/utils/types";
+import { useRoute } from "wouter";
+import { ws } from "@/utils/ws";
 
 interface ChatAreaProps {
-  currentUser: User | null;
-  selectedConversation: Conversation | null;
+  currentUser: User | undefined;
   toggleMobileMenu: () => void;
 }
 
 export default function ChatArea({
   currentUser,
-  selectedConversation,
   toggleMobileMenu,
 }: ChatAreaProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [text, setText] = useState("");
+
+  const [, params] = useRoute("/chat/:id");
 
   useEffect(() => {
-    if (selectedConversation) {
-      mockGetMessages(selectedConversation.id).then(setMessages);
-    }
-  }, [selectedConversation]);
+    if (!params?.id) return;
+
+    ws.addEventListener("open", () => {
+      const path = window.location.pathname;
+      if (!path.includes("/chat/")) {
+        // console.error("Invalid chat URL format");
+        return;
+      }
+      const roomId = params.id;
+
+      ws.send(JSON.stringify({ type: "open", roomId }));
+      console.log("joined", roomId);
+    });
+
+    const messageHandler = (event: MessageEvent) => {
+      const data = JSON.parse(event.data);
+      console.log("ws", data);
+    };
+
+    ws.addEventListener("message", messageHandler);
+
+    return () => {
+      ws.close();
+    };
+  }, [params?.id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -43,70 +64,33 @@ export default function ChatArea({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // const handleSendMessage = async (e: React.FormEvent) => {
+  //   e.preventDefault();
 
-    if (!newMessage.trim() || !selectedConversation || !currentUser) return;
+  //   if (!newMessage.trim() || !selectedConversation || !currentUser) return;
 
-    try {
-      const message: Omit<Message, "id"> = {
-        text: newMessage,
-        senderId: currentUser.id,
-        createdAt: new Date(),
-        read: false,
-      };
+  //   try {
+  //     const message = {
+  //       content: newMessage,
+  //       sender: currentUser._id,
+  //       attachments: [],
+  //     };
 
-      const sentMessage = await mockSendMessage(
-        selectedConversation.id,
-        message
-      );
-      setMessages([...messages, sentMessage]);
-      setNewMessage("");
-    } catch (error) {
-      console.error("Error sending message:", error);
-    }
-  };
+  //     const sentMessage = await mockSendMessage(
+  //       selectedConversation.id,
+  //       message
+  //     );
+  //     console.log(sentMessage);
+  //     if (sentMessage) {
+  //       setMessages([...messages, sentMessage as Message]);
+  //     }
+  //     setNewMessage("");
+  //   } catch (error) {
+  //     console.error("Error sending message:", error);
+  //   }
+  // };
 
-  const getConversationName = () => {
-    if (!selectedConversation || !currentUser) return "Select a conversation";
-
-    if (selectedConversation.isGroup) {
-      return selectedConversation.groupName;
-    } else {
-      const otherParticipantId = selectedConversation.participants.find(
-        (id) => id !== currentUser.id
-      );
-      return otherParticipantId
-        ? selectedConversation.participantsInfo[otherParticipantId]?.displayName
-        : "Unknown";
-    }
-  };
-
-  const getConversationAvatar = () => {
-    if (!selectedConversation || !currentUser) return null;
-
-    if (selectedConversation.isGroup) {
-      return selectedConversation.groupPhoto;
-    } else {
-      const otherParticipantId = selectedConversation.participants.find(
-        (id) => id !== currentUser.id
-      );
-      return otherParticipantId
-        ? selectedConversation.participantsInfo[otherParticipantId]?.photoURL
-        : null;
-    }
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .substring(0, 2);
-  };
-
-  if (!selectedConversation) {
+  if (!params) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
@@ -132,7 +116,7 @@ export default function ChatArea({
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <Avatar>
+          {/* <Avatar>
             <AvatarImage src={getConversationAvatar() || undefined} />
             <AvatarFallback>
               {selectedConversation.isGroup ? (
@@ -146,11 +130,7 @@ export default function ChatArea({
             <p className="font-medium">{getConversationName()}</p>
             {!selectedConversation.isGroup && (
               <p className="text-xs text-muted-foreground">
-                {selectedConversation.participantsInfo[
-                  selectedConversation.participants.find(
-                    (id) => id !== currentUser?.id
-                  ) || ""
-                ]?.status === "online" ? (
+                {otherParticipantStatus === "online" ? (
                   <>
                     <span className="inline-block h-2 w-2 rounded-full bg-green-500 mr-1"></span>
                     Online
@@ -160,7 +140,7 @@ export default function ChatArea({
                 )}
               </p>
             )}
-          </div>
+          </div> */}
         </div>
         <Button variant="ghost" size="icon" onClick={() => setIsInfoOpen(true)}>
           <Info className="h-5 w-5" />
@@ -171,7 +151,7 @@ export default function ChatArea({
         <div className="space-y-4">
           {messages.length > 0 ? (
             messages.map((message) => {
-              const isCurrentUser = message.senderId === currentUser?.id;
+              const isCurrentUser = message.sender._id === currentUser?._id;
               return (
                 <div
                   key={message.id}
@@ -188,10 +168,9 @@ export default function ChatArea({
                         : "bg-secondary"
                     )}
                   >
-                    <p>{message.text}</p>
+                    <p>{message.content}</p>
                     <p className="text-xs mt-1 opacity-70">
-                      {message.createdAt &&
-                        format(message.createdAt.toDate(), "p")}
+                      {message.createdAt && format(message.createdAt, "p")}
                     </p>
                   </div>
                 </div>
@@ -206,7 +185,10 @@ export default function ChatArea({
         </div>
       </ScrollArea>
 
-      <form onSubmit={handleSendMessage} className="border-t p-3 flex gap-2">
+      <form
+        // onSubmit={handleSendMessage}
+        className="border-t p-3 flex gap-2"
+      >
         <Input
           placeholder="Type a message..."
           value={newMessage}
@@ -218,12 +200,12 @@ export default function ChatArea({
         </Button>
       </form>
 
-      <ConversationInfo
+      {/* <ConversationInfo
         isOpen={isInfoOpen}
         onClose={() => setIsInfoOpen(false)}
         conversation={selectedConversation}
         currentUser={currentUser}
-      />
+      /> */}
     </div>
   );
 }

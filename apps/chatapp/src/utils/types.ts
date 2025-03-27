@@ -1,15 +1,16 @@
-export interface User {
-  id: string;
+export type User = {
+  _id: string;
   username: string;
   email: string;
   password: string;
   profilePicture?: string;
+  status?: "online" | "offline" | "away";
   createdAt: Date;
   updatedAt?: Date;
-}
+};
 
 export interface Conversation {
-  id: string;
+  _id: string;
   type: "direct" | "group";
   participants: User[];
   name?: string;

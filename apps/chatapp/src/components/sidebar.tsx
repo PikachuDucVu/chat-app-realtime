@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,13 +11,13 @@ import NewConversationDialog from "@/components/new-conversation-dialog";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { Conversation } from "@/utils/types";
+import { Conversation, User } from "@/utils/types";
+import { useLocation, useRoute } from "wouter";
+import { ws } from "@/utils/ws";
 
 interface SidebarProps {
-  currentUser: User | null;
+  currentUser: User | undefined;
   conversations: Conversation[];
-  selectedConversation: Conversation | null;
-  setSelectedConversation: (conversation: Conversation) => void;
   isMobileMenuOpen: boolean;
   toggleMobileMenu: () => void;
 }
@@ -27,8 +25,6 @@ interface SidebarProps {
 export default function Sidebar({
   currentUser,
   conversations,
-  selectedConversation,
-  setSelectedConversation,
   isMobileMenuOpen,
   toggleMobileMenu,
 }: SidebarProps) {
@@ -36,54 +32,46 @@ export default function Sidebar({
   const [isNewConversationOpen, setIsNewConversationOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const [, navigate] = useLocation();
+
+  // const [text, setText] = useState("");
+  // const [id, setId] = useState("");
+
+  const [, params] = useRoute("/chat/:id");
 
   const filteredConversations = conversations.filter((conversation) => {
-    if (conversation.isGroup && conversation.groupName) {
-      return conversation.groupName
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
-    } else {
-      // For direct messages, search through participant names
-      const otherParticipantId = conversation.participants.find(
-        (id) => id !== currentUser?.id
-      );
-      if (
-        otherParticipantId &&
-        conversation.participantsInfo[otherParticipantId]
-      ) {
-        return conversation.participantsInfo[otherParticipantId].displayName
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase());
-      }
-    }
-    return false;
+    console.log(conversation);
+    return conversation;
   });
 
-  const getConversationName = (conversation: Conversation) => {
-    if (conversation.isGroup) {
-      return conversation.groupName;
-    } else {
-      const otherParticipantId = conversation.participants.find(
-        (id) => id !== currentUser?.id
-      );
-      return otherParticipantId
-        ? conversation.participantsInfo[otherParticipantId]?.displayName
-        : "Unknown";
-    }
+  const getConversationAvatar = (conversation: Conversation) => {
+    return conversation.avatar;
   };
 
-  const getConversationAvatar = (conversation: Conversation) => {
-    if (conversation.isGroup) {
-      return conversation.groupPhoto;
-    } else {
-      const otherParticipantId = conversation.participants.find(
-        (id) => id !== currentUser?.id
-      );
-      return otherParticipantId
-        ? conversation.participantsInfo[otherParticipantId]?.photoURL
-        : null;
-    }
-  };
+  // const handleSend = useCallback(() => {
+  //   console.log("Sending message:", text);
+
+  //   ws.send(
+  //     JSON.stringify({
+  //       id: currentUser?._id,
+  //       type: "message",
+  //       roomId: params,
+  //       text,
+  //     })
+  //   );
+
+  //   setText("");
+  // }, [text]);
+
+  // useEffect(() => {
+  //   ws.addEventListener("message", (event) => {
+  //     const data = JSON.parse(event.data);
+  //     console.log("ws", data);
+  //   });
+  //   return () => {
+  //     ws.close();
+  //   };
+  // }, []);
 
   const getInitials = (name: string) => {
     return name
@@ -123,15 +111,13 @@ export default function Sidebar({
       <div className="p-4">
         <div className="flex items-center gap-2 mb-4">
           <Avatar>
-            <AvatarImage src={currentUser?.photoURL || undefined} />
+            <AvatarImage src={currentUser?.profilePicture || undefined} />
             <AvatarFallback>
-              {currentUser?.displayName
-                ? getInitials(currentUser.displayName)
-                : "?"}
+              {currentUser?.username ? getInitials(currentUser.username) : "?"}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-medium">{currentUser?.displayName}</p>
+            <p className="font-medium">{currentUser?.username}</p>
             <p className="text-xs text-muted-foreground">
               <span className="inline-block h-2 w-2 rounded-full bg-green-500 mr-1"></span>
               Online
@@ -151,7 +137,7 @@ export default function Sidebar({
         </div>
 
         <Button
-          className="w-full mb-2"
+          className="w-full mb-2 text-black"
           onClick={() => setIsNewConversationOpen(true)}
         >
           <Plus className="h-4 w-4 mr-2" /> New Conversation
@@ -165,13 +151,19 @@ export default function Sidebar({
           {filteredConversations.length > 0 ? (
             filteredConversations.map((conversation) => (
               <div
-                key={conversation.id}
+                key={conversation._id}
                 className={cn(
                   "flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-secondary transition-colors",
-                  selectedConversation?.id === conversation.id && "bg-secondary"
+                  params?.id === conversation._id && "bg-secondary"
                 )}
-                onClick={() => {
-                  setSelectedConversation(conversation);
+                onClick={async () => {
+                  ws.addEventListener("close", () => {
+                    const roomId = params?.id;
+                    ws.send(JSON.stringify({ type: "leave", roomId }));
+                    console.log("left", roomId);
+                  });
+
+                  navigate(`/chat/${conversation._id}`);
                   if (isMobile) toggleMobileMenu();
                 }}
               >
@@ -180,17 +172,32 @@ export default function Sidebar({
                     src={getConversationAvatar(conversation) || undefined}
                   />
                   <AvatarFallback>
-                    {conversation.isGroup ? (
+                    {conversation.type === "group" ? (
                       <Users className="h-4 w-4" />
+                    ) : conversation.participants.find(
+                        (p) => p._id !== currentUser?._id
+                      )?.username ? (
+                      getInitials(
+                        conversation.participants.find(
+                          (p) => p._id !== currentUser?._id
+                        )?.username!
+                      )
                     ) : (
-                      getInitials(getConversationName(conversation) || "")
+                      conversation.participants.map((p) =>
+                        getInitials(p.username!)
+                      )
                     )}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 overflow-hidden">
                   <div className="flex justify-between items-start">
                     <p className="font-medium truncate">
-                      {getConversationName(conversation)}
+                      {conversation.name
+                        ? conversation.name
+                        : conversation.participants
+                            .filter((p) => p._id !== currentUser?._id)
+                            .map((p) => p.username)
+                            .join(", ")}
                     </p>
                     {conversation.lastMessage?.createdAt && (
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
@@ -205,10 +212,10 @@ export default function Sidebar({
                   </div>
                   {conversation.lastMessage && (
                     <p className="text-sm text-muted-foreground truncate">
-                      {conversation.lastMessage.senderId === currentUser?.id
+                      {conversation.lastMessage.sender._id === currentUser?._id
                         ? "You: "
                         : ""}
-                      {conversation.lastMessage.text}
+                      {conversation.lastMessage.content}
                     </p>
                   )}
                 </div>

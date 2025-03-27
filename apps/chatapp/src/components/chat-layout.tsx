@@ -1,32 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Sidebar from "@/components/sidebar";
-import ChatArea from "@/components/chat-area";
-import { Conversation, User } from "@/utils/types";
-import { mockGetConversations, mockUpdateUserStatus } from "@/utils/mock-data";
+import { Conversation } from "@/utils/types";
+import ChatArea from "./chat-area";
+import { useAuth } from "@/context/AuthProvider";
+import { ConversationAPI } from "@/lib/api";
 
-interface ChatLayoutProps {
-  initialUser: User | null;
-}
-
-export default function ChatLayout({ initialUser }: ChatLayoutProps) {
-  const [currentUser, setCurrentUser] = useState<User | null>(initialUser);
+export default function ChatLayout() {
+  const { userInfo } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedConversation, setSelectedConversation] =
-    useState<Conversation | null>(null);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    if (currentUser) {
-      mockUpdateUserStatus(currentUser.id, "online");
-      mockGetConversations(currentUser.id).then(setConversations);
-    }
+  const fetchConversations = useCallback(async () => {
+    const conversations = await ConversationAPI.getAll();
+    setConversations(conversations);
+  }, []);
 
-    return () => {
-      if (currentUser) {
-        mockUpdateUserStatus(currentUser.id, "offline");
-      }
-    };
-  }, [currentUser]);
+  useEffect(() => {
+    fetchConversations();
+  }, []);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -35,18 +27,12 @@ export default function ChatLayout({ initialUser }: ChatLayoutProps) {
   return (
     <div className="flex w-full h-full bg-background justify-between">
       <Sidebar
-        currentUser={currentUser}
+        currentUser={userInfo}
         conversations={conversations}
-        selectedConversation={selectedConversation}
-        setSelectedConversation={setSelectedConversation}
         isMobileMenuOpen={isMobileMenuOpen}
         toggleMobileMenu={toggleMobileMenu}
       />
-      <ChatArea
-        currentUser={currentUser}
-        selectedConversation={selectedConversation}
-        toggleMobileMenu={toggleMobileMenu}
-      />
+      <ChatArea currentUser={userInfo} toggleMobileMenu={toggleMobileMenu} />
     </div>
   );
 }

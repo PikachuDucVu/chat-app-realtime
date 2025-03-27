@@ -23,7 +23,7 @@ interface AddParticipantsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   conversation: Conversation;
-  currentUser: User | null;
+  currentUser: User | undefined;
 }
 
 export default function AddParticipantsDialog({
@@ -73,8 +73,8 @@ export default function AddParticipantsDialog({
   }, [searchQuery, isOpen, searchUsers]);
 
   const toggleUserSelection = (user: User) => {
-    if (selectedUsers.some((u) => u.id === user.id)) {
-      setSelectedUsers(selectedUsers.filter((u) => u.id !== user.id));
+    if (selectedUsers.some((u) => u._id === user._id)) {
+      setSelectedUsers(selectedUsers.filter((u) => u._id !== user._id));
     } else {
       setSelectedUsers([...selectedUsers, user]);
     }
@@ -159,7 +159,7 @@ export default function AddParticipantsDialog({
               <div className="flex flex-wrap gap-2 mt-2">
                 {selectedUsers.map((user) => (
                   <div
-                    key={user.id}
+                    key={user._id}
                     className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-sm"
                   >
                     <span>{user.displayName}</span>
@@ -180,12 +180,12 @@ export default function AddParticipantsDialog({
                 <div className="p-2">
                   {users.map((user) => (
                     <div
-                      key={user.id}
+                      key={user._id}
                       className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary cursor-pointer"
                       onClick={() => toggleUserSelection(user)}
                     >
                       <Checkbox
-                        checked={selectedUsers.some((u) => u.id === user.id)}
+                        checked={selectedUsers.some((u) => u._id === user._id)}
                         onCheckedChange={() => toggleUserSelection(user)}
                       />
                       <Avatar>
