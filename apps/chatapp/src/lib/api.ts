@@ -52,6 +52,10 @@ export const ConversationAPI = {
     const res = await axiosInstance.get(`/conversations/${id}`);
     return res.data as { data: Conversation };
   },
+  getMessages: async (id: string): Promise<any[]> => {
+    const res = await axiosInstance.get(`/conversations/getMessages/${id}`);
+    return res.data;
+  },
   create: async (
     type: "direct" | "group",
     receiverId: string

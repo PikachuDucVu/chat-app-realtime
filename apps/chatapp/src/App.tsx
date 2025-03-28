@@ -9,7 +9,7 @@ function App() {
     <ThemeProvider defaultTheme="dark">
       <AuthProvider>
         <Switch>
-          <Route path="/" component={HomeScreen} nest />
+          <Route path="/chat" component={HomeScreen} nest />
           <Route path="/auth" component={AuthScreen} />
         </Switch>
       </AuthProvider>

@@ -22,7 +22,7 @@ export interface Conversation {
 }
 
 export interface Message {
-  id: string;
+  _id: string;
   conversation: Conversation;
   sender: User;
   content?: string;

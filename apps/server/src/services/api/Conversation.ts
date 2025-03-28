@@ -34,7 +34,9 @@ app.get("/getAll", async (c) => {
   }
 });
 
-app.get("/getById/:id", async (c) => {
+import MessageSchema from "../../schema/MessageSchema";
+
+app.get("/getMessages/:id", async (c) => {
   const token = getCookie(c, "userToken");
 
   if (!token) {
@@ -42,7 +44,7 @@ app.get("/getById/:id", async (c) => {
   }
 
   const decoded = jwt.verify(token, process.env.JWT_SECRET!.toString()) as {
-    id: string;
+    _id: string;
     email: string;
     username: string;
   };
@@ -55,16 +57,22 @@ app.get("/getById/:id", async (c) => {
 
     if (
       !conversation.participants.includes(
-        new mongoose.Types.ObjectId(decoded.id)
+        new mongoose.Types.ObjectId(decoded._id)
       )
     ) {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
-    return c.json(conversation);
+    const messages = await MessageSchema.find({
+      conversation: conversation._id,
+    })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    return c.json(messages);
   } catch (error) {
-    console.error("Error fetching conversation:", error);
-    return c.json({ error: "Failed to fetch conversation" }, 500);
+    console.error("Error fetching messages:", error);
+    return c.json({ error: "Failed to fetch messages" }, 500);
   }
 });
 

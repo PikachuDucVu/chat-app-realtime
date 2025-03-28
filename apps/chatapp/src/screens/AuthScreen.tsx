@@ -25,7 +25,7 @@ const AuthScreen = () => {
       const res = await AuthAPI.login(email, password);
       if (res && res.token) {
         toast.success("Login successful");
-        navigate("/");
+        navigate("/chat");
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -39,7 +39,7 @@ const AuthScreen = () => {
       const res = await AuthAPI.register(fullName, email, password);
       if (res && res.token) {
         toast.success("Register successful");
-        navigate("/");
+        navigate("/chat");
       }
     } catch (error) {
       if (error instanceof Error) {

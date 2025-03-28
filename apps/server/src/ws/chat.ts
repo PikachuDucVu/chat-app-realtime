@@ -18,7 +18,8 @@ app.get(
       },
       async onMessage(event, ws) {
         const data = JSON.parse(event.data.toString());
-        if (data.type === "open" && data.roomId) {
+        console.log("WebSocket message received:", event.data);
+        if (data.type === "join" && data.roomId) {
           const roomId = data.roomId;
 
           if (!mongoose.Types.ObjectId.isValid(roomId)) {
@@ -55,30 +56,47 @@ app.get(
 
         const message = JSON.parse(event.data.toString());
         if (message.type === "message") {
-          console.log(`Message from room ${message.roomId}: ${message.text}`);
+          console.log(
+            `Message of user ${message.senderId} room ${message.roomId}: ${message.text}`
+          );
 
           try {
+            // First find the conversation
+            const conversation = await ConversationSchema.findById(
+              message.roomId
+            );
+
+            if (!conversation) {
+              ws.send(JSON.stringify({ error: "Conversation not found" }));
+              return;
+            }
+
             // Create new message document
             const newMessage = await MessageSchema.create({
-              conversation: message.roomId,
+              conversation: conversation._id,
               sender: message.senderId,
               content: message.text,
-              attachments: message.attachments || [],
+              attachments: [],
               readBy: [],
             });
 
-            // Update conversation's lastMessage reference
+            // Update conversation's lastMessage reference with the new message's ID
             await ConversationSchema.findByIdAndUpdate(message.roomId, {
               lastMessage: newMessage._id,
             });
 
-            // Broadcast message with database ID
+            console.log("Message saved to database:", newMessage);
+
+            // Prepare message with database ID
             const messageWithId = {
               ...message,
               _id: newMessage._id,
               createdAt: newMessage.createdAt,
             };
+
+            // Broadcast to all subscribers including sender
             ws.raw?.publish(message.roomId, JSON.stringify(messageWithId));
+            // log who is subscribed to the room
           } catch (error) {
             console.error("Error saving message:", error);
             const errorMessage =

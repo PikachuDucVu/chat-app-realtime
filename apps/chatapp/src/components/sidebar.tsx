@@ -12,14 +12,15 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Conversation, User } from "@/utils/types";
-import { useLocation, useRoute } from "wouter";
-import { ws } from "@/utils/ws";
+import { useRoute } from "wouter";
 
 interface SidebarProps {
   currentUser: User | undefined;
   conversations: Conversation[];
   isMobileMenuOpen: boolean;
   toggleMobileMenu: () => void;
+  onRoomChange: (roomId: string) => void;
+  currentRoomId: string | null;
 }
 
 export default function Sidebar({
@@ -27,51 +28,21 @@ export default function Sidebar({
   conversations,
   isMobileMenuOpen,
   toggleMobileMenu,
+  onRoomChange,
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isNewConversationOpen, setIsNewConversationOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const isMobile = useMediaQuery("(max-width: 768px)");
-  const [, navigate] = useLocation();
-
-  // const [text, setText] = useState("");
-  // const [id, setId] = useState("");
-
   const [, params] = useRoute("/chat/:id");
 
   const filteredConversations = conversations.filter((conversation) => {
-    console.log(conversation);
     return conversation;
   });
 
   const getConversationAvatar = (conversation: Conversation) => {
     return conversation.avatar;
   };
-
-  // const handleSend = useCallback(() => {
-  //   console.log("Sending message:", text);
-
-  //   ws.send(
-  //     JSON.stringify({
-  //       id: currentUser?._id,
-  //       type: "message",
-  //       roomId: params,
-  //       text,
-  //     })
-  //   );
-
-  //   setText("");
-  // }, [text]);
-
-  // useEffect(() => {
-  //   ws.addEventListener("message", (event) => {
-  //     const data = JSON.parse(event.data);
-  //     console.log("ws", data);
-  //   });
-  //   return () => {
-  //     ws.close();
-  //   };
-  // }, []);
 
   const getInitials = (name: string) => {
     return name
@@ -84,6 +55,11 @@ export default function Sidebar({
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
+  };
+
+  const handleConversationClick = (conversationId: string) => {
+    onRoomChange(conversationId);
+    if (isMobile) toggleMobileMenu();
   };
 
   const sidebarContent = (
@@ -156,16 +132,7 @@ export default function Sidebar({
                   "flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-secondary transition-colors",
                   params?.id === conversation._id && "bg-secondary"
                 )}
-                onClick={async () => {
-                  ws.addEventListener("close", () => {
-                    const roomId = params?.id;
-                    ws.send(JSON.stringify({ type: "leave", roomId }));
-                    console.log("left", roomId);
-                  });
-
-                  navigate(`/chat/${conversation._id}`);
-                  if (isMobile) toggleMobileMenu();
-                }}
+                onClick={() => handleConversationClick(conversation._id)}
               >
                 <Avatar>
                   <AvatarImage
@@ -212,9 +179,7 @@ export default function Sidebar({
                   </div>
                   {conversation.lastMessage && (
                     <p className="text-sm text-muted-foreground truncate">
-                      {conversation.lastMessage.sender._id === currentUser?._id
-                        ? "You: "
-                        : ""}
+                      {conversation.lastMessage ? "You: " : ""}
                       {conversation.lastMessage.content}
                     </p>
                   )}
