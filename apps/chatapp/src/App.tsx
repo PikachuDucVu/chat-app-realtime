@@ -6,7 +6,7 @@ import { AuthProvider } from "./context/AuthProvider";
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="dark">
+    <ThemeProvider>
       <AuthProvider>
         <Switch>
           <Route path="/chat" component={HomeScreen} nest />

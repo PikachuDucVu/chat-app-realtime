@@ -2,10 +2,10 @@ export type User = {
   _id: string;
   username: string;
   email: string;
-  password: string;
+  password?: string;
   profilePicture?: string;
   status?: "online" | "offline" | "away";
-  createdAt: Date;
+  createdAt?: Date;
   updatedAt?: Date;
 };
 

@@ -53,13 +53,13 @@ const AuthScreen = () => {
       {/* Left side with illustration */}
       <div className="relative hidden lg:flex flex-col items-center justify-center p-8 bg-[#B5CCBE] text-white">
         <div className="max-w-md mx-auto text-center space-y-6">
-          <img
+          {/* <img
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/%E5%89%8F%E9%9D%A2%204.%20Lovebirds%20Website%20Login%20Design.jpg-1paoL13xn74ze0DJ424BHsfCXvnvkO.jpeg"
             alt="Decorative bird illustration"
             width={300}
             height={300}
             className="mx-auto"
-          />
+          /> */}
           <h2 className="text-2xl font-medium">Maecenas mattis egestas</h2>
           <p className="text-sm text-white/80">
             Lorem ipsum dolor sit amet consectetur adipisicing elit. Aliquam

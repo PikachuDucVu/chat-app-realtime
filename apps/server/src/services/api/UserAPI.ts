@@ -108,4 +108,23 @@ app.post("/login", async (c) => {
   return c.json({ token });
 });
 
+app.get("/getListFriends", async (c) => {
+  const token = getCookie(c, "userToken");
+
+  if (!token) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const friends = await UserSchema.find(
+      {},
+      { username: 1, profilePicture: 1, email: 1 }
+    ).exec();
+    return c.json(friends);
+  } catch (error) {
+    console.error("Error fetching friends:", error);
+    return c.json({ error: "Failed to fetch friends" }, 500);
+  }
+});
+
 export default app;

@@ -67,3 +67,15 @@ export const ConversationAPI = {
     return res.data as { data: Conversation };
   },
 };
+
+export const UserAPI = {
+  getListFriends: async () => {
+    const res = await axiosInstance.get("/user/getListFriends");
+    return res.data as {
+      _id: string;
+      username: string;
+      email: string;
+      avatar: string;
+    }[];
+  },
+};

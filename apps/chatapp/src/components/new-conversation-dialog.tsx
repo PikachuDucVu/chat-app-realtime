@@ -1,6 +1,4 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { User } from "@/utils/types";
 import {
   Dialog,
@@ -18,7 +16,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { mockCreateConversation, mockUsers } from "@/utils/mock-data";
+import { mockCreateConversation } from "@/utils/mock-data";
+import { UserAPI } from "@/lib/api";
 
 interface NewConversationDialogProps {
   isOpen: boolean;
@@ -32,23 +31,49 @@ export default function NewConversationDialog({
   currentUser,
 }: NewConversationDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [users, setUsers] = useState<User[]>([]);
+  const [allFriends, setAllFriends] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [isGroup, setIsGroup] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (isOpen && searchQuery.length >= 2) {
-      const filteredUsers: User[] = mockUsers.filter(
-        (user) =>
-          user.id !== currentUser?._id &&
-          user.username.toLowerCase().includes(searchQuery.toLowerCase())
-      ) as User[];
-      setUsers(filteredUsers);
+  const fetchFriends = useCallback(async () => {
+    if (!currentUser?._id) return;
+    try {
+      const friends = await UserAPI.getListFriends();
+      if (friends) {
+        const fullFriendsList = friends
+          .filter((friend) => friend._id !== currentUser._id)
+          .map((friend) => ({
+            ...friend,
+            email: `${friend.username}@example.com`,
+            createdAt: new Date(),
+            profilePicture: friend.avatar,
+          }));
+        setAllFriends(fullFriendsList);
+        setFilteredUsers(fullFriendsList);
+      }
+    } catch (error) {
+      console.error("Failed to fetch friends:", error);
+      setAllFriends([]);
+      setFilteredUsers([]);
     }
-  }, [searchQuery, isOpen, currentUser]);
+  }, [currentUser]);
+
+  useEffect(() => {
+    const filtered = allFriends.filter((friend) =>
+      friend.username.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredUsers(filtered);
+  }, [searchQuery, allFriends]);
+
+  useEffect(() => {
+    if (isOpen && allFriends.length === 0) {
+      fetchFriends();
+    }
+  }, [isOpen, fetchFriends, allFriends]);
 
   const toggleUserSelection = (user: User) => {
     if (selectedUsers.some((u) => u._id === user._id)) {
@@ -80,7 +105,10 @@ export default function NewConversationDialog({
         admin: currentUser._id,
       };
 
-      await mockCreateConversation(conversationData);
+      await mockCreateConversation({
+        ...conversationData,
+        name: conversationData.name || null,
+      });
 
       toast({
         title: "Conversation created",
@@ -189,18 +217,18 @@ export default function NewConversationDialog({
             )}
 
             <ScrollArea className="h-[200px] border rounded-md">
-              {users.length > 0 ? (
+              {filteredUsers.length > 0 ? (
                 <div className="p-2">
-                  {users.map((user) => (
+                  {filteredUsers.map((user) => (
                     <div
                       key={user._id}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary cursor-pointer"
+                      className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${
+                        selectedUsers.some((u) => u._id === user._id)
+                          ? "bg-primary/10"
+                          : "hover:bg-secondary"
+                      }`}
                       onClick={() => toggleUserSelection(user)}
                     >
-                      <Checkbox
-                        checked={selectedUsers.some((u) => u._id === user._id)}
-                        onCheckedChange={() => toggleUserSelection(user)}
-                      />
                       <Avatar>
                         <AvatarImage src={user.profilePicture || undefined} />
                         <AvatarFallback>

@@ -13,7 +13,7 @@ const app = new Hono();
 app.use(
   "*",
   cors({
-    origin: "http://localhost:5173", // Replace with your frontend URL
+    origin: process.env.APP_CONTENT_URL || "http://localhost:5173", // Replace with your frontend URL
     credentials: true,
   })
 );

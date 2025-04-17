@@ -1,6 +1,10 @@
 import { hc } from "hono/client";
 
-const client = hc(`${import.meta.env.VITE_BASE_URL}/conversations`);
+const client = hc(`${import.meta.env.VITE_WS_URL}/conversations`);
+console.log(
+  `Connecting to WebSocket at ${import.meta.env.VITE_WS_URL}/conversations`
+);
+
 const ws = client.ws.$ws(0);
 
 export function joinRoom(roomId: string) {

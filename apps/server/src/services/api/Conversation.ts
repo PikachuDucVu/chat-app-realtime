@@ -4,6 +4,7 @@ import { getCookie } from "hono/cookie";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import UserSchema from "../../schema/UserSchema";
+import MessageSchema from "../../schema/MessageSchema";
 
 const app = new Hono();
 
@@ -33,8 +34,6 @@ app.get("/getAll", async (c) => {
     return c.json({ error: "Failed to fetch conversations" }, 500);
   }
 });
-
-import MessageSchema from "../../schema/MessageSchema";
 
 app.get("/getMessages/:id", async (c) => {
   const token = getCookie(c, "userToken");

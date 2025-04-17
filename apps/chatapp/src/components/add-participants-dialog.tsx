@@ -19,6 +19,7 @@ import { Search } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { mockUsers } from "@/utils/mock-data";
 import { Conversation, User } from "@/utils/types";
+import { UserAPI } from "@/lib/api";
 interface AddParticipantsDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -38,32 +39,11 @@ export default function AddParticipantsDialog({
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const searchUsers = useCallback(() => {
-    if (!currentUser) return;
+  console.log("dcm");
 
-    // try {
-    //   const usersRef = collection(db, "users");
-    //   const q = query(
-    //     usersRef,
-    //     where("displayName", ">=", searchQuery),
-    //     where("displayName", "<=", searchQuery + "\uf8ff")
-    //   );
-
-    //   const querySnapshot = await getDocs(q);
-    //   const usersList: User[] = [];
-
-    //   querySnapshot.forEach((doc) => {
-    //     const userData = { id: doc.id, ...doc.data() } as User;
-    //     // Only show users who are not already in the conversation
-    //     if (!conversation.participants.includes(userData.id)) {
-    //       usersList.push(userData);
-    //     }
-    //   });
-
-    //   setUsers(usersList);
-    // } catch (error) {
-    //   console.error("Error searching users:", error);
-    // }
+  const searchUsers = useCallback(async () => {
+    const friends = await UserAPI.getListFriends();
+    console.log(friends);
   }, [currentUser]);
 
   useEffect(() => {
